@@ -21,9 +21,9 @@ Open `mortal-kombake.html` in any modern browser. No install, no server — just
 ## 🥧 The Roster
 
 | Fighter | Emoji | Style |
-|---|---|---|---|
-| Cherry Bomb | 🥧 | Balanced speed/power | 
-| Lord Meringue | 🍋 | Heavy hitter | 
+|---|---|---|
+| Cherry Bomb | 🥧 | Balanced speed/power |
+| Lord Meringue | 🍋 | Heavy hitter |
 | The Pecan | 🤎 | Slow but devastating |
 | Pumpkin Reaper | 🎃 | Fast slasher |
 | Shepherd's Bane | 🛡️ | All-rounder |
