@@ -449,6 +449,65 @@
   }
   .fight-btn.ready { opacity: 1; pointer-events: all; }
   .fight-btn:hover { background: var(--blood-bright); color: #fff; transform: scale(1.05); }
+  /* MODE SELECT on title */
+  .mode-select {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .mode-btn {
+    font-family: 'Cinzel Decorative', serif;
+    background: none;
+    border: 2px solid #444;
+    color: #888;
+    padding: 10px 28px;
+    font-size: clamp(0.7rem, 1.5vw, 0.95rem);
+    cursor: pointer;
+    letter-spacing: 0.15em;
+    transition: all 0.2s;
+  }
+  .mode-btn:hover { border-color: var(--gold-dim); color: var(--cream); }
+  .mode-btn.active-mode { border-color: var(--gold); color: var(--gold); box-shadow: 0 0 14px #c9a22755; }
+  /* CPU difficulty picker */
+  .diff-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    align-items: center;
+  }
+  .diff-label {
+    font-size: clamp(0.55rem, 1.2vw, 0.72rem);
+    color: var(--cream);
+    opacity: 0.6;
+    letter-spacing: 0.2em;
+    margin-right: 4px;
+  }
+  .diff-btn {
+    font-family: 'Cinzel', serif;
+    background: none;
+    border: 1px solid #444;
+    color: #666;
+    padding: 5px 14px;
+    font-size: clamp(0.55rem, 1.2vw, 0.7rem);
+    cursor: pointer;
+    letter-spacing: 0.1em;
+    transition: all 0.15s;
+  }
+  .diff-btn:hover { border-color: var(--gold-dim); color: var(--cream); }
+  .diff-btn.easy.active-diff   { border-color: #4caf50; color: #4caf50; box-shadow: 0 0 8px #4caf5055; }
+  .diff-btn.medium.active-diff { border-color: var(--gold); color: var(--gold); box-shadow: 0 0 8px #c9a22755; }
+  .diff-btn.hard.active-diff   { border-color: var(--blood-bright); color: var(--blood-bright); box-shadow: 0 0 8px #cc000055; }
+  /* CPU tag on p2 panel */
+  .cpu-badge {
+    display: none;
+    font-size: clamp(0.45rem, 1vw, 0.6rem);
+    background: var(--blood-bright);
+    color: #fff;
+    padding: 2px 8px;
+    letter-spacing: 0.15em;
+    font-family: 'Cinzel', serif;
+    margin-bottom: 4px;
+  }
   @keyframes pulse-border-red {
     0%, 100% { box-shadow: 0 0 5px #660000; }
     50% { box-shadow: 0 0 20px #cc0000, 0 0 40px #66000088; }
@@ -492,9 +551,19 @@
       <div class="title-kombake">KOMBAKE <span class="title-pie">🥧</span></div>
     </div>
     <div class="title-subtitle">Its a good day to pi</div>
+    <div class="mode-select">
+      <button class="mode-btn active-mode" id="modeVs">⚔ 2 PLAYER</button>
+      <button class="mode-btn" id="modeCpu">🤖 VS CPU</button>
+    </div>
+    <div class="diff-row" id="diffRow" style="display:none">
+      <span class="diff-label">DIFFICULTY:</span>
+      <button class="diff-btn easy active-diff" data-diff="easy">EASY</button>
+      <button class="diff-btn medium" data-diff="medium">MEDIUM</button>
+      <button class="diff-btn hard" data-diff="hard">HARD</button>
+    </div>
     <div class="controls-preview">
       <div class="ctrl-block">
-        <h3>🥧 P1 — CHERRY BOMB</h3>
+        <h3>🥧 P1 CONTROLS</h3>
         <p>
           <span class="key">A</span>/<span class="key">D</span> Move<br>
           <span class="key">W</span> Jump<br>
@@ -502,8 +571,8 @@
           <span class="key">R</span>+<span class="key">F</span> Special
         </p>
       </div>
-      <div class="ctrl-block">
-        <h3>🍋 P2 — LORD MERINGUE</h3>
+      <div class="ctrl-block" id="p2ControlsBlock">
+        <h3>🎮 P2 CONTROLS</h3>
         <p>
           <span class="key">←</span>/<span class="key">→</span> Move<br>
           <span class="key">↑</span> Jump<br>
@@ -518,7 +587,7 @@
   <!-- CHARACTER SELECT -->
   <div id="char-select">
     <div class="select-title">CHOOSE YOUR FIGHTER</div>
-    <div class="select-subtitle">P1: CLICK &nbsp;|&nbsp; P2: SHIFT+CLICK</div>
+    <div class="select-subtitle" id="selectSubtitle">P1: CLICK &nbsp;|&nbsp; P2: SHIFT+CLICK</div>
     <div class="roster-grid" id="roster-grid"></div>
     <div class="select-preview">
       <div class="preview-panel p1-panel">
@@ -530,14 +599,15 @@
       </div>
       <div class="preview-vs">VS</div>
       <div class="preview-panel p2-panel">
-        <div class="preview-player-label">PLAYER 2</div>
+        <div class="cpu-badge" id="cpuBadge">🤖 CPU</div>
+        <div class="preview-player-label" id="p2PlayerLabel">PLAYER 2</div>
         <div class="preview-emoji" id="p2-preview-emoji">❓</div>
         <div class="preview-fighter-name" id="p2-preview-name">— SELECT —</div>
         <div class="preview-stat" id="p2-preview-stat"></div>
         <div class="preview-special" id="p2-preview-special"></div>
       </div>
     </div>
-    <div class="select-instruction">P1: LEFT CLICK &nbsp;·&nbsp; P2: SHIFT + LEFT CLICK</div>
+    <div class="select-instruction" id="selectInstruction">P1: LEFT CLICK &nbsp;·&nbsp; P2: SHIFT + LEFT CLICK</div>
     <button class="fight-btn" id="fightBtn">⚔ KOMBAKE! ⚔</button>
   </div>
 
@@ -596,6 +666,8 @@ const ROUND_TIME = 99;
 const WINS_TO_WIN = 2;
 
 let gameState = 'title'; // title, fight, ko, victory
+let gameMode = 'vs';          // 'vs' | 'cpu'
+let cpuDifficulty = 'easy';   // 'easy' | 'medium' | 'hard'
 let timer = ROUND_TIME;
 let timerInterval = null;
 let announceTimeout = null;
@@ -603,6 +675,7 @@ let p1Wins = 0, p2Wins = 0;
 let roundNum = 1;
 let particles = [];
 let projectiles = [];
+window._projectiles = projectiles;
 let screenShake = 0;
 
 // Keys
@@ -977,6 +1050,94 @@ class Fighter {
   }
 }
 
+// ===== CPU AI =====
+class CpuAI {
+  constructor(fighter, difficulty) {
+    this.fighter = fighter;
+    this.difficulty = difficulty;
+    this.actionTimer  = 0;   // frames until next decision
+    this.currentAction = null;
+    // Difficulty tuning
+    const cfg = {
+      easy:   { react: 40, aggro: 0.30, jumpChance: 0.04, specialChance: 0.04, blockChance: 0.10 },
+      medium: { react: 22, aggro: 0.55, jumpChance: 0.07, specialChance: 0.10, blockChance: 0.18 },
+      hard:   { react: 10, aggro: 0.82, jumpChance: 0.12, specialChance: 0.18, blockChance: 0.28 },
+    };
+    this.cfg = cfg[difficulty] || cfg.easy;
+  }
+
+  update(opponent) {
+    const f  = this.fighter;
+    const op = opponent;
+    if (f.dead || f.dizzy > 0) return;
+
+    this.actionTimer--;
+    if (this.actionTimer > 0) return;
+    // Reset after each decision window
+    this.actionTimer = this.cfg.react + Math.floor(Math.random() * this.cfg.react);
+
+    const dist  = Math.abs(f.cx - op.cx);
+    const isAggressive = Math.random() < this.cfg.aggro;
+
+    // ── Dodge incoming projectiles ──
+    const threat = window._projectiles && window._projectiles.find(p =>
+      p.owner !== f &&
+      Math.sign(p.vx) === Math.sign(op.cx - f.cx) &&
+      Math.abs(p.x - f.cx) < 220 &&
+      Math.abs(p.y - (f.y - 45)) < 60
+    );
+    if (threat && f.onGround && Math.random() < 0.7) {
+      this._pressKey(f.config.jump);
+      return;
+    }
+
+    // ── Special move (ranged — always from any distance) ──
+    if (!f.attacking && f.specialCooldown === 0 && Math.random() < this.cfg.specialChance) {
+      this._pressKey(f.config.special);
+      setTimeout(() => this._pressKey(f.config.punch), 60);
+      return;
+    }
+
+    // ── Close range combat ──
+    if (dist < 110) {
+      if (!f.attacking && isAggressive) {
+        const roll = Math.random();
+        if (roll < 0.45)      this._pressKey(f.config.punch);
+        else if (roll < 0.80) this._pressKey(f.config.kick);
+        else if (f.onGround && Math.random() < this.cfg.jumpChance) {
+          this._pressKey(f.config.jump);
+        }
+      } else if (dist < 55 && Math.random() < this.cfg.blockChance) {
+        // Back away slightly
+        const retreatKey = f.cx < op.cx ? f.config.left : f.config.right;
+        this._holdKey(retreatKey, 18);
+      }
+    } else {
+      // ── Approach ──
+      if (isAggressive || dist > 280) {
+        const approachKey = f.cx < op.cx ? f.config.right : f.config.left;
+        this._holdKey(approachKey, 20 + Math.floor(Math.random() * 15));
+      }
+      // Occasional jump approach
+      if (f.onGround && Math.random() < this.cfg.jumpChance) {
+        this._pressKey(f.config.jump);
+      }
+    }
+  }
+
+  _pressKey(code) {
+    keys[code] = true;
+    setTimeout(() => { keys[code] = false; }, 100 + Math.random() * 60);
+  }
+
+  _holdKey(code, frames) {
+    keys[code] = true;
+    setTimeout(() => { keys[code] = false; }, frames * 16);
+  }
+}
+
+let cpuAI = null;
+
 // ===== FULL ROSTER =====
 const ROSTER = [
   { name: 'Cherry Bomb',     emoji: '🥧', symbol: '🍒', color: '#cc0000', fillColor: '#cc3333', headColor: '#e85c5c', stat: 'SPEED ████░  POWER ███░░', special: '✦ CHERRY BURST — Explosive cherry barrage' },
@@ -1004,8 +1165,12 @@ function buildRosterGrid() {
     card.dataset.idx = i;
     card.innerHTML = `<div class="card-emoji">${fighter.emoji}</div><div class="card-name">${fighter.name}</div>`;
     card.addEventListener('click', (e) => {
-      if (e.shiftKey) selectFighter(2, i);
-      else selectFighter(1, i);
+      if (gameMode === 'cpu') {
+        selectFighter(1, i);
+      } else {
+        if (e.shiftKey) selectFighter(2, i);
+        else selectFighter(1, i);
+      }
     });
     grid.appendChild(card);
   });
@@ -1046,9 +1211,28 @@ function updateSelectUI() {
     document.getElementById('p2-preview-stat').textContent = f.stat;
     document.getElementById('p2-preview-special').textContent = f.special;
   }
+  // In CPU mode: auto-select a random p2 that differs from p1, then show as ready
+  if (gameMode === 'cpu' && p1SelectedIdx >= 0) {
+    if (p2SelectedIdx < 0) {
+      // pick random fighter for CPU (different from p1 if possible)
+      const options = ROSTER.map((_,i)=>i).filter(i=>i!==p1SelectedIdx);
+      p2SelectedIdx = options[Math.floor(Math.random() * options.length)];
+    }
+    const f2 = ROSTER[p2SelectedIdx];
+    document.getElementById('p2-preview-emoji').textContent  = f2.emoji;
+    document.getElementById('p2-preview-name').textContent   = f2.name + ' 🤖';
+    document.getElementById('p2-preview-stat').textContent   = f2.stat;
+    document.getElementById('p2-preview-special').textContent = f2.special;
+  }
+
   const btn = document.getElementById('fightBtn');
-  if (p1SelectedIdx >= 0 && p2SelectedIdx >= 0) btn.classList.add('ready');
-  else btn.classList.remove('ready');
+  if (gameMode === 'cpu') {
+    if (p1SelectedIdx >= 0) btn.classList.add('ready');
+    else btn.classList.remove('ready');
+  } else {
+    if (p1SelectedIdx >= 0 && p2SelectedIdx >= 0) btn.classList.add('ready');
+    else btn.classList.remove('ready');
+  }
 }
 
 let p1, p2;
@@ -1057,6 +1241,9 @@ function initFighters() {
   p1 = new Fighter(canvas.width * 0.25, 'left', p1Config);
   p2 = new Fighter(canvas.width * 0.75 - 60, 'right', p2Config);
   p2.facingRight = false;
+  if (gameMode === 'cpu') {
+    cpuAI = new CpuAI(p2, cpuDifficulty);
+  }
 }
 
 // ===== PARTICLES =====
@@ -1090,6 +1277,7 @@ function updateParticles() {
 
 function updateProjectiles(p1, p2) {
   projectiles = projectiles.filter(p => p.life > 0 && !p.hit);
+  window._projectiles = projectiles;
   projectiles.forEach(proj => {
     proj.x += proj.vx;
     proj.y += proj.vy;
@@ -1282,6 +1470,16 @@ function goToCharSelect() {
   document.getElementById('char-select').style.display = 'flex';
   p1SelectedIdx = -1; p2SelectedIdx = -1;
   p1Config = null; p2Config = null;
+
+  const isCpu = gameMode === 'cpu';
+  // Update subtitle / instruction for mode
+  document.getElementById('selectSubtitle').textContent =
+    isCpu ? 'CHOOSE YOUR FIGHTER' : 'P1: CLICK  |  P2: SHIFT+CLICK';
+  document.getElementById('selectInstruction').textContent =
+    isCpu ? 'P1: LEFT CLICK  ·  CPU picks automatically' : 'P1: LEFT CLICK  ·  P2: SHIFT + LEFT CLICK';
+  document.getElementById('cpuBadge').style.display   = isCpu ? 'block' : 'none';
+  document.getElementById('p2PlayerLabel').textContent = isCpu ? 'CPU OPPONENT' : 'PLAYER 2';
+
   buildRosterGrid();
   updateSelectUI();
 }
@@ -1294,7 +1492,11 @@ function startGame() {
   document.getElementById('hud').style.display = 'block';
   document.getElementById('victory-screen').style.display = 'none';
   document.getElementById('p1-hud-name').textContent = p1Config.emoji + ' ' + p1Config.name;
-  document.getElementById('p2-hud-name').textContent = p2Config.name + ' ' + p2Config.emoji;
+  document.getElementById('p2-hud-name').textContent =
+    gameMode === 'cpu'
+      ? p2Config.emoji + ' ' + p2Config.name + ' 🤖'
+      : p2Config.name + ' ' + p2Config.emoji;
+  cpuAI = null;
   updateWinDots();
   startRound();
 }
@@ -1391,6 +1593,7 @@ function loop() {
 
   if (gameState !== 'title') {
     if (gameState === 'fight') {
+      if (cpuAI) cpuAI.update(p1);
       p1.update(p2);
       p2.update(p1);
       checkKO();
@@ -1403,6 +1606,30 @@ function loop() {
 }
 
 // ===== INIT =====
+// Mode toggle
+document.getElementById('modeVs').addEventListener('click', () => {
+  gameMode = 'vs';
+  document.getElementById('modeVs').classList.add('active-mode');
+  document.getElementById('modeCpu').classList.remove('active-mode');
+  document.getElementById('diffRow').style.display = 'none';
+  document.getElementById('p2ControlsBlock').style.display = '';
+});
+document.getElementById('modeCpu').addEventListener('click', () => {
+  gameMode = 'cpu';
+  document.getElementById('modeCpu').classList.add('active-mode');
+  document.getElementById('modeVs').classList.remove('active-mode');
+  document.getElementById('diffRow').style.display = 'flex';
+  document.getElementById('p2ControlsBlock').style.display = 'none';
+});
+// Difficulty buttons
+document.querySelectorAll('.diff-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    cpuDifficulty = btn.dataset.diff;
+    document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active-diff'));
+    btn.classList.add('active-diff');
+  });
+});
+
 document.getElementById('startBtn').addEventListener('click', goToCharSelect);
 document.getElementById('playAgainBtn').addEventListener('click', () => {
   document.getElementById('victory-screen').style.display = 'none';

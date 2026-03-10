@@ -2,7 +2,7 @@
 
 > *"Its a good day to pi"*
 
-A pie-themed 2-player fighting game built for **Pi Day (March 14th)** — inspired by Mortal Kombat, built in a few hours.
+A pie-themed 1 or 2-player fighting game built for **Pi Day (March 14th)** — inspired by Mortal Kombat, built quickly in HTML.
 
 ![Game Screenshot](https://img.shields.io/badge/Pi%20Day-March%2014-gold?style=for-the-badge) ![Platform](https://img.shields.io/badge/Platform-Browser-blue?style=for-the-badge) ![Players](https://img.shields.io/badge/Players-2%20Local-red?style=for-the-badge)
 
@@ -10,7 +10,7 @@ A pie-themed 2-player fighting game built for **Pi Day (March 14th)** — inspir
 
 ## How to Play
 
-Open `mortal-kombake.html` in any modern browser. No install, no server — just double-click and fight.
+Open `index.html` in any modern browser. No install, no server — just double-click and fight.
 
 1. Click **⚔ BEGIN KOMBAKE** on the title screen
 2. Each player selects their fighter on the character select screen
