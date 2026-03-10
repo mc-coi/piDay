@@ -794,10 +794,10 @@ class Fighter {
         });
 
       } else if (sid === 'meringue_pillar') {
-        // Rising pillar at opponent's location — spawns at ground, travels UP
-        projectiles.push({ type: 'meringue', x: this.cx + dir*160, y: GROUND_Y(),
+        // Rising pillar directly under the opponent — spawns at ground, travels UP
+        projectiles.push({ type: 'meringue', x: opponent.cx, y: GROUND_Y(),
           vx: 0, vy: -14, owner: this, config: this.config,
-          life: 28, hit: false, spin: 0, width: 36 });
+          life: 28, hit: false, spin: 0, width: 50 });
 
       } else if (sid === 'nut_crunch') {
         // Melee charge — deal damage directly if in range, else lunge
@@ -1364,10 +1364,16 @@ function updateProjectiles(p1, p2) {
     // Hit detection
     const target = proj.owner === p1 ? p2 : p1;
     if (!target.dead && target.hitCooldown === 0) {
-      const hitW = proj.type === 'gravy' ? (proj.radius || 20) : proj.type === 'meringue' ? (proj.width||36)/2 : 36;
-      const hitH = proj.type === 'meringue' ? 60 : 48;
+      const hitW = proj.type === 'gravy' ? (proj.radius || 20) : proj.type === 'meringue' ? (proj.width||36) : 36;
       const dx = Math.abs(proj.x - target.cx);
-      const dy = Math.abs(proj.y - (target.y - target.height / 2));
+      let dy;
+      if (proj.type === 'meringue') {
+        // Pillar rises upward from ground — hit whenever it's inside the fighter's vertical space
+        dy = (proj.y > (target.y - target.height) && proj.y <= target.y) ? 0 : 999;
+      } else {
+        dy = Math.abs(proj.y - (target.y - target.height / 2));
+      }
+      const hitH = proj.type === 'meringue' ? 1 : 48;
       if (dx < hitW && dy < hitH) {
         proj.hit = true;
         // Per-type damage & effects
