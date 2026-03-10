@@ -1,6 +1,6 @@
-# 🥧 MORTAL KOMBAKE
+# MORTAL KOMBAKE
 
-> *"There can only be one slice."*
+> *"Its a good day to pi"*
 
 A pie-themed 2-player fighting game built for **Pi Day (March 14th)** — inspired by Mortal Kombat, built in a few hours.
 
@@ -8,7 +8,7 @@ A pie-themed 2-player fighting game built for **Pi Day (March 14th)** — inspir
 
 ---
 
-## 🎮 How to Play
+## How to Play
 
 Open `mortal-kombake.html` in any modern browser. No install, no server — just double-click and fight.
 
@@ -18,7 +18,7 @@ Open `mortal-kombake.html` in any modern browser. No install, no server — just
 
 ---
 
-## 🥧 The Roster
+## The Roster
 
 | Fighter | Emoji | Style |
 |---|---|---|
@@ -31,7 +31,7 @@ Open `mortal-kombake.html` in any modern browser. No install, no server — just
 
 ---
 
-## ⌨️ Controls
+## Controls
 
 ### Player 1 — Left Side
 | Key | Action |
@@ -53,7 +53,7 @@ Open `mortal-kombake.html` in any modern browser. No install, no server — just
 
 ---
 
-## ⚔️ Combat
+## Combat
 
 | Move | Damage | Notes |
 |---|---|---|
@@ -69,7 +69,7 @@ Open `mortal-kombake.html` in any modern browser. No install, no server — just
 
 ---
 
-## 🏆 Screens
+## Screens
 
 - **Title Screen** — atmospheric torchlit intro with flickering logo
 - **Character Select** — click to pick P1's fighter; Shift+click for P2. Stats and special move preview shown for each fighter
@@ -78,7 +78,7 @@ Open `mortal-kombake.html` in any modern browser. No install, no server — just
 
 ---
 
-## 🛠️ Technical Details
+## Technical Details
 
 - Pure **vanilla HTML5 / JavaScript / Canvas** — single `.html` file, zero dependencies
 - Rendering via `Canvas 2D API` with per-frame game loop (`requestAnimationFrame`)
@@ -88,7 +88,7 @@ Open `mortal-kombake.html` in any modern browser. No install, no server — just
 
 ---
 
-## 📅 About
+## About
 
 Made for **Pi Day — March 14th** 🥧 a ThinkSpace project at STEM School Chattanooga.
 
