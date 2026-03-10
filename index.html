@@ -550,7 +550,7 @@
       <div class="title-mortal">MORTAL</div>
       <div class="title-kombake">KOMBAKE <span class="title-pie">🥧</span></div>
     </div>
-    <div class="title-subtitle">Its a good day to pi</div>
+    <div class="title-subtitle">There can only be one slice</div>
     <div class="mode-select">
       <button class="mode-btn active-mode" id="modeVs">⚔ 2 PLAYER</button>
       <button class="mode-btn" id="modeCpu">🤖 VS CPU</button>
@@ -777,45 +777,114 @@ class Fighter {
     if (this.attacking && this.attackTimer === 10) {
       if (this.attackType !== 'special') this.tryHit(opponent);
     }
-    // Fire pie projectile at wind-up frame
+    // Fire special at wind-up frame
     if (this.attacking && this.attackType === 'special' && this._pendingProjectile && this.attackTimer === 18) {
       this._pendingProjectile = false;
       const dir = this.facingRight ? 1 : -1;
-      projectiles.push({
-        x: this.cx + dir * 20,
-        y: this.y - 55,
-        vx: dir * 12,
-        vy: -3,
-        owner: this,
-        config: this.config,
-        life: 60,
-        hit: false,
-        spin: 0
-      });
+      const sid = this.config.specialId;
+
+      if (sid === 'cherry_burst') {
+        // Triple cherry volley — 3 projectiles at different angles
+        [[-4, -4], [0, -3], [4, -2]].forEach(([vy_off, vx_extra], i) => {
+          setTimeout(() => {
+            projectiles.push({ type: 'cherry', x: this.cx + dir*20, y: this.y-55,
+              vx: dir*(11 + vx_extra), vy: vy_off, owner: this, config: this.config,
+              life: 55, hit: false, spin: 0 });
+          }, i * 80);
+        });
+
+      } else if (sid === 'meringue_pillar') {
+        // Rising pillar at opponent's location — spawns at ground, travels UP
+        projectiles.push({ type: 'meringue', x: this.cx + dir*160, y: GROUND_Y(),
+          vx: 0, vy: -14, owner: this, config: this.config,
+          life: 28, hit: false, spin: 0, width: 36 });
+
+      } else if (sid === 'nut_crunch') {
+        // Melee charge — deal damage directly if in range, else lunge
+        this.x += dir * 80;
+        this.x = Math.max(0, Math.min(canvas.width - this.width, this.x));
+        // damage handled in tryHit at attackTimer===10 (melee)
+        this._pendingProjectile = false; // no projectile
+
+      } else if (sid === 'harvest_scythe') {
+        // Wide arc — projectile sweeps diagonally downward at high speed
+        projectiles.push({ type: 'scythe', x: this.cx + dir*10, y: this.y-70,
+          vx: dir*14, vy: 5, owner: this, config: this.config,
+          life: 30, hit: false, spin: 0 });
+
+      } else if (sid === 'gravy_flood') {
+        // Slow ground wave
+        projectiles.push({ type: 'gravy', x: this.cx + dir*10, y: GROUND_Y()-10,
+          vx: dir*4, vy: 0, owner: this, config: this.config,
+          life: 90, hit: false, spin: 0, radius: 8 });
+
+      } else if (sid === 'irrational') {
+        // Rapid-fire 5 digit projectiles with slight spread
+        for (let i = 0; i < 5; i++) {
+          setTimeout(() => {
+            const spread = (Math.random() - 0.5) * 6;
+            projectiles.push({ type: 'digit', x: this.cx + dir*15, y: this.y-50,
+              vx: dir*(13 + Math.random()*3), vy: spread, owner: this, config: this.config,
+              life: 50, hit: false, spin: Math.random()*Math.PI*2,
+              digit: ['π','∞','√','∑','∂'][i] });
+          }, i * 60);
+        }
+
+      } else {
+        // Fallback: generic pie throw
+        projectiles.push({ type: 'pie', x: this.cx + dir*20, y: this.y-55,
+          vx: dir*12, vy: -3, owner: this, config: this.config,
+          life: 60, hit: false, spin: 0 });
+      }
+    }
+
+    // Nut Crunch melee special — hit detection runs at attackTimer===10
+    if (this.attacking && this.attackType === 'special'
+        && this.config.specialId === 'nut_crunch' && this.attackTimer === 10) {
+      this.tryHit(opponent, true);
     }
   }
 
   startAttack(type) {
     this.attacking = true;
     this.attackType = type;
-    this.attackTimer = type === 'special' ? 30 : type === 'kick' ? 20 : 15;
+    const sid = this.config.specialId;
+    // Nut Crunch & Harvest Scythe are melee specials → shorter timer
+    const meleeSids = ['nut_crunch', 'harvest_scythe'];
+    this.attackTimer = type === 'special'
+      ? (meleeSids.includes(sid) ? 22 : 30)
+      : type === 'kick' ? 20 : 15;
     if (type === 'special' && this.specialCooldown === 0) {
-      // Fire pie projectile after short wind-up (at frame 18 of 30)
       this._pendingProjectile = true;
     }
   }
 
-  tryHit(opponent) {
+  tryHit(opponent, forceSpecial = false) {
     if (opponent.hitCooldown > 0 || opponent.dead) return;
-    const reach = this.attackType === 'kick' ? 90 : this.attackType === 'special' ? 130 : 75;
+    const sid = this.config.specialId;
+    const isHarvestScythe = sid === 'harvest_scythe' && this.attackType === 'special';
+    const isNutCrunch = sid === 'nut_crunch' && (this.attackType === 'special' || forceSpecial);
+    const reach = isNutCrunch ? 120 : isHarvestScythe ? 140 : this.attackType === 'kick' ? 90 : 75;
     const dist = Math.abs(this.cx - opponent.cx);
     const yDist = Math.abs((this.y - this.height/2) - (opponent.y - opponent.height/2));
-    if (dist < reach && yDist < 80) {
-      let dmg = this.attackType === 'special' ? 22 : this.attackType === 'kick' ? 12 : 8;
-      if (this.attackType === 'special') {
+    const yReach = isHarvestScythe ? 120 : 80;
+    if (dist < reach && yDist < yReach) {
+      const sid = this.config.specialId;
+      let dmg = this.attackType === 'kick' ? 12 : 8;
+      if (this.attackType === 'special' || forceSpecial) {
+        if (sid === 'nut_crunch')     dmg = 28;
+        else if (sid === 'harvest_scythe') dmg = 20;
+        else dmg = 22;
+      }
+      const isSpecialHit = this.attackType === 'special' || forceSpecial;
+      if (isSpecialHit) {
         spawnParticles(opponent.cx, opponent.y - opponent.height/2, 20, this.config.color, 6);
         spawnParticles(opponent.cx, opponent.y - opponent.height/2, 10, '#fff', 4);
         screenShake = 15;
+        // Nut crunch launches opponent high
+        if (sid === 'nut_crunch') { opponent.vy = -14; opponent.onGround = false; }
+        // Harvest scythe knocks sideways
+        if (sid === 'harvest_scythe') { opponent.vy = -6; opponent.onGround = false; }
       } else {
         spawnParticles(opponent.cx, opponent.y - opponent.height/2, 8, this.config.color, 4);
         screenShake = 5;
@@ -823,11 +892,8 @@ class Fighter {
       opponent.hp = Math.max(0, opponent.hp - dmg);
       opponent.hitCooldown = 20;
       opponent.hitFlash = 8;
-      opponent.dizzy = this.attackType === 'special' ? 40 : 0;
-      if (this.attackType !== 'special') {
-        opponent.vy = -5;
-        opponent.onGround = false;
-      }
+      opponent.dizzy = isSpecialHit ? 40 : 0;
+      if (!isSpecialHit) { opponent.vy = -5; opponent.onGround = false; }
       updateHealthBars();
     }
   }
@@ -1140,12 +1206,12 @@ let cpuAI = null;
 
 // ===== FULL ROSTER =====
 const ROSTER = [
-  { name: 'Cherry Bomb',     emoji: '🥧', symbol: '🍒', color: '#cc0000', fillColor: '#cc3333', headColor: '#e85c5c', stat: 'SPEED ████░  POWER ███░░', special: '✦ CHERRY BURST — Explosive cherry barrage' },
-  { name: 'Lord Meringue',   emoji: '🍋', symbol: '🍋', color: '#f0d060', fillColor: '#ffe080', headColor: '#fff5cc', stat: 'SPEED ███░░  POWER ████░', special: '✦ MERINGUE STORM — Whipped cream pillars' },
-  { name: 'The Pecan',       emoji: '🤎', symbol: '🥜', color: '#8b4513', fillColor: '#a0522d', headColor: '#c68642', stat: 'SPEED ██░░░  POWER █████', special: '✦ NUT CRUNCH — Devastating crunch slam' },
-  { name: 'Pumpkin Reaper',  emoji: '🎃', symbol: '🎃', color: '#ff6600', fillColor: '#ff8c00', headColor: '#ffb347', stat: 'SPEED ████░  POWER ███░░', special: '✦ HARVEST SCYTHE — Pumpkin spice slash' },
-  { name: "Shepherd's Bane", emoji: '🛡️', symbol: '🐑', color: '#4a7c59', fillColor: '#5a9c6a', headColor: '#7ab87e', stat: 'SPEED ███░░  POWER ███░░', special: '✦ GRAVY FLOOD — Drown foes in brown gravy' },
-  { name: 'Π Destroyer',     emoji: '🔢', symbol: 'π',  color: '#9b59b6', fillColor: '#bb79d6', headColor: '#d7a9e3', stat: 'SPEED █████  POWER ██░░░', special: '✦ IRRATIONAL — Infinite digit overload' },
+  { name: 'Cherry Bomb',     emoji: '🥧', symbol: '🍒', color: '#cc0000', fillColor: '#cc3333', headColor: '#e85c5c', stat: 'SPEED ████░  POWER ███░░', special: '✦ CHERRY BURST — Triple cherry volley', specialId: 'cherry_burst' },
+  { name: 'Lord Meringue',   emoji: '🍋', symbol: '🍋', color: '#f0d060', fillColor: '#ffe080', headColor: '#fff5cc', stat: 'SPEED ███░░  POWER ████░', special: '✦ MERINGUE PILLAR — Rising whipped cream column', specialId: 'meringue_pillar' },
+  { name: 'The Pecan',       emoji: '🤎', symbol: '🥜', color: '#8b4513', fillColor: '#a0522d', headColor: '#c68642', stat: 'SPEED ██░░░  POWER █████', special: '✦ NUT CRUNCH — Charge slam that stuns', specialId: 'nut_crunch' },
+  { name: 'Pumpkin Reaper',  emoji: '🎃', symbol: '🎃', color: '#ff6600', fillColor: '#ff8c00', headColor: '#ffb347', stat: 'SPEED ████░  POWER ███░░', special: '✦ HARVEST SCYTHE — Wide arc scythe swing', specialId: 'harvest_scythe' },
+  { name: "Shepherd's Bane", emoji: '🛡️', symbol: '🐑', color: '#4a7c59', fillColor: '#5a9c6a', headColor: '#7ab87e', stat: 'SPEED ███░░  POWER ███░░', special: '✦ GRAVY FLOOD — Slow ground wave of gravy', specialId: 'gravy_flood' },
+  { name: 'Π Destroyer',     emoji: '🔢', symbol: 'π',  color: '#9b59b6', fillColor: '#bb79d6', headColor: '#d7a9e3', stat: 'SPEED █████  POWER ██░░░', special: '✦ IRRATIONAL — Rapid-fire digit barrage', specialId: 'irrational' },
 ];
 
 const P1_CONTROLS = { left: 'KeyA', right: 'KeyD', jump: 'KeyW', punch: 'KeyF', kick: 'KeyG', special: 'KeyR' };
@@ -1281,23 +1347,43 @@ function updateProjectiles(p1, p2) {
   projectiles.forEach(proj => {
     proj.x += proj.vx;
     proj.y += proj.vy;
-    proj.vy += 0.25; // gentle arc
-    proj.spin += 0.2;
+    proj.spin += 0.18;
     proj.life--;
-    // Check hit against opponent
+
+    // Type-specific physics
+    if (proj.type === 'cherry') { proj.vy += 0.18; }           // gentle arc
+    else if (proj.type === 'meringue') { proj.vy += 0.4; }     // decelerates upward
+    else if (proj.type === 'scythe') { proj.vy += 0.3; }       // dips down
+    else if (proj.type === 'gravy') { /* stays at ground */ proj.y = Math.min(proj.y, GROUND_Y()-8); }
+    else if (proj.type === 'digit') { proj.vy += 0.12; }       // slight fall
+    else { proj.vy += 0.25; }                                    // pie fallback
+
+    // Grow gravy radius over time
+    if (proj.type === 'gravy') proj.radius = Math.min((proj.radius || 8) + 0.6, 28);
+
+    // Hit detection
     const target = proj.owner === p1 ? p2 : p1;
     if (!target.dead && target.hitCooldown === 0) {
+      const hitW = proj.type === 'gravy' ? (proj.radius || 20) : proj.type === 'meringue' ? (proj.width||36)/2 : 36;
+      const hitH = proj.type === 'meringue' ? 60 : 48;
       const dx = Math.abs(proj.x - target.cx);
       const dy = Math.abs(proj.y - (target.y - target.height / 2));
-      if (dx < 40 && dy < 50) {
+      if (dx < hitW && dy < hitH) {
         proj.hit = true;
-        target.hp = Math.max(0, target.hp - 22);
-        target.hitCooldown = 25;
+        // Per-type damage & effects
+        let dmg = 22, dizzyFrames = 45, shake = 15;
+        if (proj.type === 'cherry')   { dmg = 15; dizzyFrames = 30; shake = 10; }
+        if (proj.type === 'meringue') { dmg = 25; dizzyFrames = 55; target.vy = -10; target.onGround = false; }
+        if (proj.type === 'scythe')   { dmg = 20; target.vy = -6;  target.onGround = false; }
+        if (proj.type === 'gravy')    { dmg = 8;  dizzyFrames = 80; shake = 8; }  // slow DoT feel
+        if (proj.type === 'digit')    { dmg = 9;  dizzyFrames = 20; shake = 6; }
+        target.hp = Math.max(0, target.hp - dmg);
+        target.hitCooldown = 22;
         target.hitFlash = 10;
-        target.dizzy = 45;
-        spawnParticles(proj.x, proj.y, 20, proj.config.color, 6);
-        spawnParticles(proj.x, proj.y, 10, '#fff8dc', 4);
-        screenShake = 15;
+        target.dizzy = dizzyFrames;
+        spawnParticles(proj.x, proj.y, 18, proj.config.color, 5);
+        spawnParticles(proj.x, proj.y, 8, '#fff8dc', 3);
+        screenShake = shake;
         updateHealthBars();
       }
     }
@@ -1308,14 +1394,74 @@ function drawProjectiles() {
   projectiles.forEach(proj => {
     ctx.save();
     ctx.translate(proj.x, proj.y);
-    ctx.rotate(proj.spin);
-    // Glow trail
-    ctx.shadowBlur = 20;
-    ctx.shadowColor = proj.config.color;
-    ctx.font = '28px serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('🥧', 0, 0);
+
+    if (proj.type === 'cherry') {
+      ctx.rotate(proj.spin);
+      ctx.shadowBlur = 16; ctx.shadowColor = '#cc0000';
+      ctx.font = '22px serif';
+      ctx.fillText('🍒', 0, 0);
+
+    } else if (proj.type === 'meringue') {
+      // Tall pillar of whipped cream rising from ground
+      ctx.shadowBlur = 20; ctx.shadowColor = '#ffe080';
+      const h = 50 + (1 - proj.life / 28) * 30;
+      // cream column
+      ctx.fillStyle = '#fffbe6';
+      ctx.beginPath();
+      ctx.roundRect(-(proj.width||36)/2, -h, proj.width||36, h, 6);
+      ctx.fill();
+      // swirl lines
+      ctx.strokeStyle = '#f0d060';
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 3; i++) {
+        ctx.beginPath();
+        ctx.moveTo(-(proj.width||36)/2 + 6, -h + i*16 + 4);
+        ctx.quadraticCurveTo(0, -h + i*16 + 10, (proj.width||36)/2 - 6, -h + i*16 + 4);
+        ctx.stroke();
+      }
+      ctx.font = '18px serif'; ctx.fillText('🍋', 0, -h - 10);
+
+    } else if (proj.type === 'scythe') {
+      ctx.rotate(proj.spin * 2);
+      ctx.shadowBlur = 22; ctx.shadowColor = '#ff6600';
+      ctx.font = '32px serif';
+      ctx.fillText('🌙', 0, 0);
+      // motion trail
+      ctx.globalAlpha = 0.3;
+      ctx.font = '24px serif';
+      ctx.fillText('🌙', -proj.vx * 2, -proj.vy * 2);
+
+    } else if (proj.type === 'gravy') {
+      const r = proj.radius || 20;
+      ctx.shadowBlur = 14; ctx.shadowColor = '#6b4423';
+      // gravy blob
+      const grad = ctx.createRadialGradient(0,0,2,0,0,r);
+      grad.addColorStop(0, 'rgba(107,68,35,0.9)');
+      grad.addColorStop(0.6, 'rgba(90,50,20,0.7)');
+      grad.addColorStop(1, 'rgba(60,30,10,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, r, r * 0.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.font = '14px serif'; ctx.fillText('🍖', 0, -6);
+
+    } else if (proj.type === 'digit') {
+      ctx.rotate(proj.spin);
+      ctx.shadowBlur = 18; ctx.shadowColor = '#9b59b6';
+      ctx.fillStyle = '#d7a9e3';
+      ctx.font = 'bold 20px serif';
+      ctx.fillText(proj.digit || 'π', 0, 0);
+
+    } else {
+      // Fallback pie
+      ctx.rotate(proj.spin);
+      ctx.shadowBlur = 20; ctx.shadowColor = proj.config.color;
+      ctx.font = '28px serif';
+      ctx.fillText('🥧', 0, 0);
+    }
+
     ctx.shadowBlur = 0;
     ctx.restore();
   });
