@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MORTAL KOMBAKE 🥧</title>
+<link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Cinzel+Decorative:wght@900&family=Cinzel:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blood: #8b0000;
+    --blood-bright: #cc0000;
+    --gold: #c9a227;
+    --gold-dim: #7a5f10;
+    --ash: #1a1a1a;
+    --ember: #ff4500;
+    --cream: #f5e6c8;
+    --dark: #0a0a0a;
+    --smoke: #2a2a2a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--dark);
+    font-family: 'Cinzel', serif;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    cursor: crosshair;
+  }
+  #game-container {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+    overflow: hidden;
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+  }
+
+  /* TITLE SCREEN */
+  #title-screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(ellipse at center, #1a0000 0%, #000 70%);
+    z-index: 10;
+  }
+  #title-screen::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.15) 2px, rgba(0,0,0,0.15) 4px);
+    pointer-events: none;
+  }
+  .title-logo {
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  .title-mortal {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(2rem, 6vw, 5rem);
+    color: var(--blood-bright);
+    text-shadow: 0 0 30px #ff000088, 0 0 60px #ff000044, 4px 4px 0 #000;
+    letter-spacing: 0.15em;
+    animation: flicker 3s infinite;
+  }
+  .title-kombake {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(2.5rem, 8vw, 7rem);
+    color: var(--gold);
+    text-shadow: 0 0 20px #c9a22788, 4px 4px 0 #000, -1px -1px 0 #7a5f10;
+    letter-spacing: 0.1em;
+    line-height: 0.9;
+    animation: flicker 2.5s infinite 0.5s;
+  }
+  .title-pie {
+    font-size: clamp(3rem, 8vw, 6rem);
+    filter: drop-shadow(0 0 20px #ff8c00);
+    animation: spin-slow 8s linear infinite;
+    display: inline-block;
+  }
+  .title-subtitle {
+    color: var(--cream);
+    font-size: clamp(0.7rem, 1.5vw, 1rem);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin: 10px 0 30px;
+    opacity: 0.7;
+  }
+  .controls-preview {
+    display: flex;
+    gap: 60px;
+    margin-bottom: 30px;
+    color: var(--cream);
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+  }
+  .ctrl-block { text-align: center; }
+  .ctrl-block h3 { color: var(--gold); margin-bottom: 8px; font-size: 0.85rem; }
+  .ctrl-block p { opacity: 0.7; line-height: 1.8; }
+  .key { 
+    display: inline-block;
+    background: #333;
+    border: 1px solid #666;
+    border-bottom: 3px solid #222;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 0.75rem;
+    color: #eee;
+  }
+  .start-btn {
+    font-family: 'Cinzel Decorative', serif;
+    background: none;
+    border: 2px solid var(--gold);
+    color: var(--gold);
+    padding: 12px 40px;
+    font-size: clamp(0.9rem, 2vw, 1.2rem);
+    cursor: pointer;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    animation: pulse-border 1.5s infinite;
+  }
+  .start-btn:hover {
+    background: var(--gold);
+    color: #000;
+    transform: scale(1.05);
+  }
+  .pi-day-badge {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    color: var(--gold);
+    text-align: center;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    opacity: 0.8;
+    border: 1px solid var(--gold-dim);
+    padding: 8px 12px;
+  }
+
+  /* HUD */
+  #hud {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    padding: 12px 20px;
+    z-index: 5;
+    pointer-events: none;
+    display: none;
+  }
+  .hud-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .fighter-name {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(0.6rem, 1.5vw, 0.9rem);
+    color: var(--gold);
+    text-shadow: 0 0 10px #c9a22766;
+    white-space: nowrap;
+    letter-spacing: 0.05em;
+  }
+  .health-bar-wrap {
+    flex: 1;
+    height: 20px;
+    background: #111;
+    border: 2px solid #333;
+    position: relative;
+    overflow: hidden;
+  }
+  .health-bar {
+    height: 100%;
+    transition: width 0.1s;
+    position: relative;
+  }
+  .health-bar::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 40%;
+    background: rgba(255,255,255,0.15);
+  }
+  #p1-health { background: linear-gradient(90deg, var(--blood), var(--blood-bright)); }
+  #p2-health { background: linear-gradient(90deg, #1a5c1a, #2eb82e); }
+  .health-bar-wrap.p2 { transform: scaleX(-1); }
+  .timer-box {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(1.2rem, 3vw, 2rem);
+    color: var(--cream);
+    text-shadow: 0 0 15px rgba(255,230,180,0.5);
+    min-width: 60px;
+    text-align: center;
+  }
+  .win-dots {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    margin-top: 3px;
+  }
+  .win-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: #333;
+    border: 1px solid #555;
+  }
+  .win-dot.filled { background: var(--gold); border-color: var(--gold); box-shadow: 0 0 6px var(--gold); }
+
+  /* ROUND ANNOUNCE */
+  #announce {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 8;
+    pointer-events: none;
+  }
+  .announce-text {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(2rem, 7vw, 5rem);
+    color: var(--gold);
+    text-shadow: 0 0 40px #c9a227, 4px 4px 0 #000;
+    animation: announce-anim 0.5s ease-out forwards;
+    text-align: center;
+    letter-spacing: 0.1em;
+  }
+  .announce-text.fight { color: var(--blood-bright); text-shadow: 0 0 40px #ff0000, 4px 4px 0 #000; }
+  .announce-text.ko { color: var(--ember); font-size: clamp(3rem, 10vw, 7rem); }
+  .announce-text.flawless { color: #ffd700; }
+
+  /* VICTORY SCREEN */
+  #victory-screen {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse, #1a0000 0%, #000 80%);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9;
+  }
+  .victory-title {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(1rem, 3vw, 2rem);
+    color: var(--blood-bright);
+    letter-spacing: 0.3em;
+    margin-bottom: 10px;
+    animation: flicker 2s infinite;
+  }
+  .victory-name {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(2.5rem, 7vw, 5rem);
+    color: var(--gold);
+    text-shadow: 0 0 30px #c9a227, 4px 4px 0 #000;
+    margin-bottom: 20px;
+  }
+  .fatality-text {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(0.8rem, 2vw, 1.2rem);
+    color: var(--cream);
+    opacity: 0.7;
+    letter-spacing: 0.2em;
+    margin-bottom: 30px;
+  }
+  .play-again-btn {
+    font-family: 'Cinzel', serif;
+    background: none;
+    border: 2px solid var(--blood-bright);
+    color: var(--blood-bright);
+    padding: 10px 30px;
+    font-size: 1rem;
+    cursor: pointer;
+    letter-spacing: 0.2em;
+    transition: all 0.2s;
+  }
+  .play-again-btn:hover { background: var(--blood-bright); color: #fff; }
+
+  /* CHARACTER SELECT */
+  #char-select {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    background: radial-gradient(ellipse at center, #0d0000 0%, #000 80%);
+    z-index: 10;
+    padding: 20px;
+  }
+  #char-select::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.1) 3px, rgba(0,0,0,0.1) 6px);
+    pointer-events: none;
+  }
+  .select-title {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(1rem, 3vw, 2rem);
+    color: var(--gold);
+    letter-spacing: 0.3em;
+    text-shadow: 0 0 20px #c9a22766, 3px 3px 0 #000;
+    margin-bottom: 6px;
+    animation: flicker 3s infinite;
+  }
+  .select-subtitle {
+    font-size: clamp(0.55rem, 1.2vw, 0.75rem);
+    color: var(--cream);
+    letter-spacing: 0.25em;
+    opacity: 0.5;
+    margin-bottom: 18px;
+  }
+  /* Fighter portraits grid */
+  .roster-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+    width: 100%;
+    max-width: 700px;
+  }
+  .roster-card {
+    border: 2px solid #3a2510;
+    background: #0a0505;
+    cursor: pointer;
+    position: relative;
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s, border-color 0.15s;
+    overflow: hidden;
+  }
+  .roster-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.7) 100%);
+  }
+  .roster-card:hover { transform: scale(1.05); border-color: var(--gold-dim); }
+  .roster-card.selected-p1 { border-color: #cc0000; box-shadow: 0 0 15px #cc000088, inset 0 0 15px #cc000022; }
+  .roster-card.selected-p2 { border-color: #2eb82e; box-shadow: 0 0 15px #2eb82e88, inset 0 0 15px #2eb82e22; }
+  .roster-card.selected-p1.selected-p2 { border-color: var(--gold); box-shadow: 0 0 15px #c9a22788; }
+  .card-emoji { font-size: clamp(1.8rem, 4vw, 2.8rem); z-index: 1; filter: drop-shadow(0 2px 4px #000); }
+  .card-name {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(0.35rem, 0.8vw, 0.55rem);
+    color: var(--cream);
+    letter-spacing: 0.05em;
+    z-index: 1;
+    text-align: center;
+    margin-top: 3px;
+    opacity: 0.85;
+    text-transform: uppercase;
+  }
+  .p1-tag, .p2-tag {
+    position: absolute;
+    top: 3px;
+    font-size: 0.5rem;
+    font-family: 'Cinzel', serif;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    padding: 1px 4px;
+    z-index: 2;
+  }
+  .p1-tag { left: 3px; background: #cc0000; color: #fff; }
+  .p2-tag { right: 3px; background: #2eb82e; color: #fff; }
+
+  /* Preview panels */
+  .select-preview {
+    display: flex;
+    gap: 20px;
+    width: 100%;
+    max-width: 700px;
+    margin-bottom: 14px;
+  }
+  .preview-panel {
+    flex: 1;
+    border: 2px solid #3a2510;
+    background: #080304;
+    padding: 12px;
+    position: relative;
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .preview-panel.p1-panel { border-color: #660000; }
+  .preview-panel.p2-panel { border-color: #1a5c1a; }
+  .preview-player-label {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(0.5rem, 1.2vw, 0.75rem);
+    letter-spacing: 0.2em;
+    margin-bottom: 6px;
+    opacity: 0.7;
+  }
+  .p1-panel .preview-player-label { color: #cc0000; }
+  .p2-panel .preview-player-label { color: #2eb82e; }
+  .preview-emoji { font-size: clamp(2.5rem, 6vw, 4rem); filter: drop-shadow(0 0 10px #c9a22744); }
+  .preview-fighter-name {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(0.6rem, 1.5vw, 1rem);
+    color: var(--gold);
+    letter-spacing: 0.1em;
+    margin-top: 4px;
+    text-shadow: 0 0 10px #c9a22766;
+  }
+  .preview-stat { font-size: clamp(0.4rem, 0.9vw, 0.6rem); color: #aaa; letter-spacing: 0.1em; margin-top: 3px; }
+  .preview-special { font-size: clamp(0.4rem, 0.9vw, 0.6rem); color: var(--gold); opacity: 0.8; margin-top: 2px; letter-spacing: 0.05em; }
+  .preview-vs {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(1.2rem, 3vw, 2rem);
+    color: var(--blood-bright);
+    text-shadow: 0 0 20px #cc0000;
+    align-self: center;
+    animation: flicker 2s infinite;
+  }
+  .select-instruction {
+    font-size: clamp(0.5rem, 1vw, 0.65rem);
+    color: var(--cream);
+    opacity: 0.5;
+    letter-spacing: 0.15em;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  .fight-btn {
+    font-family: 'Cinzel Decorative', serif;
+    background: none;
+    border: 2px solid var(--blood-bright);
+    color: var(--blood-bright);
+    padding: 10px 50px;
+    font-size: clamp(0.8rem, 2vw, 1.1rem);
+    cursor: pointer;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    animation: pulse-border-red 1.5s infinite;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .fight-btn.ready { opacity: 1; pointer-events: all; }
+  .fight-btn:hover { background: var(--blood-bright); color: #fff; transform: scale(1.05); }
+  @keyframes pulse-border-red {
+    0%, 100% { box-shadow: 0 0 5px #660000; }
+    50% { box-shadow: 0 0 20px #cc0000, 0 0 40px #66000088; }
+  }
+
+  @keyframes flicker {
+    0%, 95%, 100% { opacity: 1; }
+    96% { opacity: 0.8; }
+    97% { opacity: 1; }
+    98% { opacity: 0.6; }
+    99% { opacity: 1; }
+  }
+  @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes pulse-border {
+    0%, 100% { box-shadow: 0 0 5px var(--gold-dim); }
+    50% { box-shadow: 0 0 20px var(--gold), 0 0 40px var(--gold-dim); }
+  }
+  @keyframes announce-anim {
+    from { transform: scale(2); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  @keyframes shake {
+    0%, 100% { transform: translate(0,0); }
+    20% { transform: translate(-6px, 3px); }
+    40% { transform: translate(6px, -3px); }
+    60% { transform: translate(-4px, -2px); }
+    80% { transform: translate(4px, 2px); }
+  }
+  .screen-shake { animation: shake 0.3s ease; }
+</style>
+</head>
+<body>
+<div id="game-container">
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- TITLE SCREEN -->
+  <div id="title-screen">
+    <div class="pi-day-badge">π DAY<br>MARCH 14</div>
+    <div class="title-logo">
+      <div class="title-mortal">MORTAL</div>
+      <div class="title-kombake">KOMBAKE <span class="title-pie">🥧</span></div>
+    </div>
+    <div class="title-subtitle">Its a good day to pi</div>
+    <div class="controls-preview">
+      <div class="ctrl-block">
+        <h3>🥧 P1 — CHERRY BOMB</h3>
+        <p>
+          <span class="key">A</span>/<span class="key">D</span> Move<br>
+          <span class="key">W</span> Jump<br>
+          <span class="key">F</span> Punch &nbsp; <span class="key">G</span> Kick<br>
+          <span class="key">R</span>+<span class="key">F</span> Special
+        </p>
+      </div>
+      <div class="ctrl-block">
+        <h3>🍋 P2 — LORD MERINGUE</h3>
+        <p>
+          <span class="key">←</span>/<span class="key">→</span> Move<br>
+          <span class="key">↑</span> Jump<br>
+          <span class="key">K</span> Punch &nbsp; <span class="key">L</span> Kick<br>
+          <span class="key">P</span>+<span class="key">K</span> Special
+        </p>
+      </div>
+    </div>
+    <button class="start-btn" id="startBtn">⚔ BEGIN KOMBAKE ⚔</button>
+  </div>
+
+  <!-- CHARACTER SELECT -->
+  <div id="char-select">
+    <div class="select-title">CHOOSE YOUR FIGHTER</div>
+    <div class="select-subtitle">P1: CLICK &nbsp;|&nbsp; P2: SHIFT+CLICK</div>
+    <div class="roster-grid" id="roster-grid"></div>
+    <div class="select-preview">
+      <div class="preview-panel p1-panel">
+        <div class="preview-player-label">PLAYER 1</div>
+        <div class="preview-emoji" id="p1-preview-emoji">❓</div>
+        <div class="preview-fighter-name" id="p1-preview-name">— SELECT —</div>
+        <div class="preview-stat" id="p1-preview-stat"></div>
+        <div class="preview-special" id="p1-preview-special"></div>
+      </div>
+      <div class="preview-vs">VS</div>
+      <div class="preview-panel p2-panel">
+        <div class="preview-player-label">PLAYER 2</div>
+        <div class="preview-emoji" id="p2-preview-emoji">❓</div>
+        <div class="preview-fighter-name" id="p2-preview-name">— SELECT —</div>
+        <div class="preview-stat" id="p2-preview-stat"></div>
+        <div class="preview-special" id="p2-preview-special"></div>
+      </div>
+    </div>
+    <div class="select-instruction">P1: LEFT CLICK &nbsp;·&nbsp; P2: SHIFT + LEFT CLICK</div>
+    <button class="fight-btn" id="fightBtn">⚔ KOMBAKE! ⚔</button>
+  </div>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div class="hud-row">
+      <div style="text-align:left">
+        <div class="fighter-name" id="p1-hud-name">P1</div>
+        <div class="win-dots" id="p1-wins"></div>
+      </div>
+      <div class="health-bar-wrap">
+        <div class="health-bar" id="p1-health" style="width:100%"></div>
+      </div>
+      <div class="timer-box" id="timer">99</div>
+      <div class="health-bar-wrap p2">
+        <div class="health-bar" id="p2-health" style="width:100%"></div>
+      </div>
+      <div style="text-align:right">
+        <div class="fighter-name" id="p2-hud-name">P2</div>
+        <div class="win-dots" id="p2-wins" style="justify-content:flex-end"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ANNOUNCE -->
+  <div id="announce"></div>
+
+  <!-- VICTORY -->
+  <div id="victory-screen">
+    <div class="victory-title">FLAWLESS PASTRY</div>
+    <div class="victory-name" id="winner-name">CHERRY BOMB</div>
+    <div class="fatality-text" id="fatality-msg">WINS</div>
+    <button class="play-again-btn" id="playAgainBtn">KOMBAKE AGAIN</button>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// Resize canvas
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', () => { resize(); });
+
+// ===== GAME STATE =====
+const GROUND_Y = () => canvas.height * 0.78;
+const GRAVITY = 0.7;
+const JUMP_FORCE = -16;
+const MOVE_SPEED = 5;
+const MAX_HP = 100;
+const ROUND_TIME = 99;
+const WINS_TO_WIN = 2;
+
+let gameState = 'title'; // title, fight, ko, victory
+let timer = ROUND_TIME;
+let timerInterval = null;
+let announceTimeout = null;
+let p1Wins = 0, p2Wins = 0;
+let roundNum = 1;
+let particles = [];
+let projectiles = [];
+let screenShake = 0;
+
+// Keys
+const keys = {};
+window.addEventListener('keydown', e => { 
+  keys[e.code] = true; 
+  e.preventDefault();
+});
+window.addEventListener('keyup', e => { keys[e.code] = false; });
+
+// Fighter class
+class Fighter {
+  constructor(x, side, config) {
+    this.x = x;
+    this.y = GROUND_Y();
+    this.vy = 0;
+    this.side = side; // 'left' or 'right'
+    this.config = config;
+    this.hp = MAX_HP;
+    this.width = 60;
+    this.height = 90;
+    this.onGround = true;
+    this.attacking = false;
+    this.attackType = null; // 'punch','kick','special'
+    this.attackTimer = 0;
+    this.hitCooldown = 0;
+    this.blocking = false;
+    this.specialCooldown = 0;
+    this.hitFlash = 0;
+    this.dead = false;
+    this.specialKey = false;
+    this.walkFrame = 0;
+    this.walkTimer = 0;
+    this.dizzy = 0;
+    this.facingRight = side === 'left';
+  }
+
+  get cx() { return this.x + this.width / 2; }
+  get hitbox() { return { x: this.x, y: this.y - this.height, w: this.width, h: this.height }; }
+
+  update(opponent) {
+    if (this.dead) return;
+
+    // Gravity
+    this.vy += GRAVITY;
+    this.y += this.vy;
+    const gY = GROUND_Y();
+    if (this.y >= gY) { this.y = gY; this.vy = 0; this.onGround = true; }
+
+    // Facing
+    this.facingRight = this.cx < opponent.cx;
+
+    // Movement
+    const moveLeft = keys[this.config.left];
+    const moveRight = keys[this.config.right];
+    if (!this.attacking || this.attackTimer < 5) {
+      if (moveLeft) this.x -= MOVE_SPEED;
+      if (moveRight) this.x += MOVE_SPEED;
+    }
+    this.x = Math.max(0, Math.min(canvas.width - this.width, this.x));
+
+    // Jump
+    if (keys[this.config.jump] && this.onGround) {
+      this.vy = JUMP_FORCE;
+      this.onGround = false;
+      spawnParticles(this.cx, this.y, 4, '#c9a22744', 3);
+    }
+
+    // Walk animation
+    if (moveLeft || moveRight) {
+      this.walkTimer++;
+      if (this.walkTimer > 8) { this.walkFrame = (this.walkFrame + 1) % 4; this.walkTimer = 0; }
+    }
+
+    // Attack
+    if (this.attackTimer > 0) { this.attackTimer--; }
+    else { this.attacking = false; this.attackType = null; }
+
+    if (this.specialCooldown > 0) this.specialCooldown--;
+    if (this.hitCooldown > 0) this.hitCooldown--;
+    if (this.hitFlash > 0) this.hitFlash--;
+    if (this.dizzy > 0) this.dizzy--;
+
+    // Trigger attacks
+    const c = this.config;
+    if (!this.attacking) {
+      const isSpecial = keys[c.special];
+      if (isSpecial && keys[c.punch] && this.specialCooldown === 0) {
+        this.startAttack('special');
+        this.specialCooldown = 90;
+      } else if (keys[c.punch]) {
+        this.startAttack('punch');
+      } else if (keys[c.kick]) {
+        this.startAttack('kick');
+      }
+    }
+
+    // Hit detection
+    if (this.attacking && this.attackTimer === 10) {
+      if (this.attackType !== 'special') this.tryHit(opponent);
+    }
+    // Fire pie projectile at wind-up frame
+    if (this.attacking && this.attackType === 'special' && this._pendingProjectile && this.attackTimer === 18) {
+      this._pendingProjectile = false;
+      const dir = this.facingRight ? 1 : -1;
+      projectiles.push({
+        x: this.cx + dir * 20,
+        y: this.y - 55,
+        vx: dir * 12,
+        vy: -3,
+        owner: this,
+        config: this.config,
+        life: 60,
+        hit: false,
+        spin: 0
+      });
+    }
+  }
+
+  startAttack(type) {
+    this.attacking = true;
+    this.attackType = type;
+    this.attackTimer = type === 'special' ? 30 : type === 'kick' ? 20 : 15;
+    if (type === 'special' && this.specialCooldown === 0) {
+      // Fire pie projectile after short wind-up (at frame 18 of 30)
+      this._pendingProjectile = true;
+    }
+  }
+
+  tryHit(opponent) {
+    if (opponent.hitCooldown > 0 || opponent.dead) return;
+    const reach = this.attackType === 'kick' ? 90 : this.attackType === 'special' ? 130 : 75;
+    const dist = Math.abs(this.cx - opponent.cx);
+    const yDist = Math.abs((this.y - this.height/2) - (opponent.y - opponent.height/2));
+    if (dist < reach && yDist < 80) {
+      let dmg = this.attackType === 'special' ? 22 : this.attackType === 'kick' ? 12 : 8;
+      if (this.attackType === 'special') {
+        spawnParticles(opponent.cx, opponent.y - opponent.height/2, 20, this.config.color, 6);
+        spawnParticles(opponent.cx, opponent.y - opponent.height/2, 10, '#fff', 4);
+        screenShake = 15;
+      } else {
+        spawnParticles(opponent.cx, opponent.y - opponent.height/2, 8, this.config.color, 4);
+        screenShake = 5;
+      }
+      opponent.hp = Math.max(0, opponent.hp - dmg);
+      opponent.hitCooldown = 20;
+      opponent.hitFlash = 8;
+      opponent.dizzy = this.attackType === 'special' ? 40 : 0;
+      if (this.attackType !== 'special') {
+        opponent.vy = -5;
+        opponent.onGround = false;
+      }
+      updateHealthBars();
+    }
+  }
+
+  draw() {
+    ctx.save();
+    const flash = this.hitFlash > 0 && this.hitFlash % 2 === 0;
+
+    // Screen shake offset already applied in main draw
+
+    const cx = this.x + this.width / 2;
+    const by = this.y; // bottom y
+    const dir = this.facingRight ? 1 : -1;
+
+    if (flash) {
+      ctx.globalAlpha = 0.5;
+      ctx.filter = 'brightness(3) saturate(0)';
+    }
+
+    if (this.dead) {
+      this.drawDead(cx, by, dir);
+      ctx.restore();
+      return;
+    }
+
+    this.drawCharacter(cx, by, dir);
+
+    if (this.dizzy > 0) {
+      ctx.font = '16px serif';
+      ctx.textAlign = 'center';
+      const stars = ['⭐','✨','💫'];
+      for (let i = 0; i < 3; i++) {
+        const angle = (Date.now() / 200 + i * 2.1) % (Math.PI * 2);
+        ctx.fillText(stars[i % stars.length], cx + Math.cos(angle) * 25, by - this.height - 10 + Math.sin(angle) * 8);
+      }
+    }
+
+    ctx.restore();
+  }
+
+  drawCharacter(cx, by, dir) {
+    const c = this.config;
+    ctx.save();
+    ctx.translate(cx, by);
+    ctx.scale(dir, 1);
+
+    const bob = this.onGround ? Math.sin(Date.now() / 200) * 2 : 0;
+    const jumpSquash = this.onGround ? 1 : 0.85;
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.ellipse(0, 2, 30, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Legs
+    const legBob = this.onGround ? Math.sin(Date.now() / 150) * 6 : 0;
+    this.drawLegs(legBob, c.color);
+
+    // Body (pie tin)
+    ctx.save();
+    ctx.translate(0, -55 + bob);
+    ctx.scale(1, jumpSquash);
+
+    // Tin bottom (trapezoid)
+    ctx.fillStyle = '#8b6914';
+    ctx.beginPath();
+    ctx.moveTo(-22, 20); ctx.lineTo(22, 20);
+    ctx.lineTo(18, 0); ctx.lineTo(-18, 0);
+    ctx.closePath(); ctx.fill();
+
+    // Pie filling
+    ctx.fillStyle = c.fillColor;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 20, 10, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Crust edge
+    ctx.fillStyle = '#d4a85a';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 22, 11, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = c.fillColor;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 18, 9, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Face/symbol on pie
+    ctx.font = '14px serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(c.symbol, 0, 5);
+
+    // Head
+    ctx.fillStyle = c.headColor;
+    ctx.beginPath();
+    ctx.ellipse(0, -28, 16, 18, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Eyes
+    ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.ellipse(-6, -30, 4, 5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(6, -30, 4, 5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.ellipse(-5, -31, 2, 2, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(7, -31, 2, 2, 0, 0, Math.PI * 2); ctx.fill();
+
+    // Mouth
+    ctx.strokeStyle = '#333'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    if (this.attacking) {
+      ctx.arc(0, -24, 5, 0, Math.PI);
+    } else {
+      ctx.moveTo(-5, -22); ctx.quadraticCurveTo(0, -18, 5, -22);
+    }
+    ctx.stroke();
+
+    // Arms (attack animation)
+    this.drawArms(c);
+
+    ctx.restore(); // body
+    ctx.restore(); // character
+  }
+
+  drawLegs(legBob, color) {
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 8;
+    ctx.lineCap = 'round';
+
+    if (this.attacking && this.attackType === 'kick') {
+      // Kick pose: back leg planted, front leg extended outward
+      // Back leg
+      ctx.beginPath(); ctx.moveTo(-8, -10); ctx.lineTo(-12, 14); ctx.stroke();
+      ctx.fillStyle = '#5c4000';
+      ctx.beginPath(); ctx.ellipse(-12, 16, 8, 5, 0, 0, Math.PI * 2); ctx.fill();
+      // Kicking leg extended forward (high kick)
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 8;
+      ctx.beginPath(); ctx.moveTo(8, -10); ctx.lineTo(18, -20); ctx.stroke(); // thigh
+      ctx.beginPath(); ctx.moveTo(18, -20); ctx.lineTo(44, -10); ctx.stroke(); // shin
+      ctx.fillStyle = '#5c4000';
+      ctx.beginPath(); ctx.ellipse(46, -10, 10, 6, 0.4, 0, Math.PI * 2); ctx.fill(); // boot
+      // Impact flash
+      if (this.attackTimer > 12) {
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.6;
+        for (let a = 0; a < 5; a++) {
+          const ang = (a / 5) * Math.PI - 0.3;
+          ctx.beginPath();
+          ctx.moveTo(44 + Math.cos(ang)*8, -10 + Math.sin(ang)*8);
+          ctx.lineTo(44 + Math.cos(ang)*16, -10 + Math.sin(ang)*16);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+      }
+    } else {
+      // Normal walk/idle legs
+      ctx.beginPath(); ctx.moveTo(-8, -10); ctx.lineTo(-10, 10 + (this.onGround ? legBob : 0)); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(8, -10); ctx.lineTo(10, 10 - (this.onGround ? legBob : 0)); ctx.stroke();
+      ctx.fillStyle = '#5c4000';
+      ctx.beginPath(); ctx.ellipse(-10, 12 + (this.onGround ? legBob : 0), 8, 5, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(10, 12 - (this.onGround ? legBob : 0), 8, 5, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  drawArms(c) {
+    ctx.strokeStyle = c.color;
+    ctx.lineWidth = 7;
+    ctx.lineCap = 'round';
+
+    if (this.attacking && this.attackType === 'punch') {
+      // Back arm tucked
+      ctx.beginPath(); ctx.moveTo(-14, -10); ctx.lineTo(-22, -5); ctx.stroke();
+      // Punch arm fully extended
+      ctx.beginPath(); ctx.moveTo(14, -10); ctx.lineTo(40, -15); ctx.stroke();
+      ctx.fillStyle = c.color;
+      ctx.beginPath(); ctx.ellipse(42, -17, 10, 8, -0.3, 0, Math.PI * 2); ctx.fill();
+    } else if (this.attacking && this.attackType === 'kick') {
+      // Arms raised for balance during kick
+      ctx.beginPath(); ctx.moveTo(-14, -10); ctx.lineTo(-26, -28); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(14, -10); ctx.lineTo(10, -28); ctx.stroke();
+    } else if (this.attacking && this.attackType === 'special') {
+      // Wind-up throw pose: arm cocked back then forward
+      const progress = 1 - (this.attackTimer / 30); // 0→1 as animation plays
+      if (progress < 0.4) {
+        // Wind-up: arm pulled back
+        ctx.beginPath(); ctx.moveTo(-14, -10); ctx.lineTo(-28, -25); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(14, -10); ctx.lineTo(-10, -30); ctx.stroke();
+      } else {
+        // Release: arm thrust forward
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 9;
+        ctx.beginPath(); ctx.moveTo(-14, -10); ctx.lineTo(-20, -5); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(14, -10); ctx.lineTo(45, -20); ctx.stroke();
+        // Hand glow at release point
+        ctx.fillStyle = c.color;
+        ctx.shadowBlur = 15; ctx.shadowColor = c.color;
+        ctx.beginPath(); ctx.ellipse(47, -22, 9, 9, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+    } else {
+      // Idle arms
+      ctx.strokeStyle = c.color;
+      ctx.lineWidth = 7;
+      const armBob = Math.sin(Date.now() / 200) * 3;
+      ctx.beginPath(); ctx.moveTo(-14, -10); ctx.lineTo(-22, -5 + armBob); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(14, -10); ctx.lineTo(22, -5 - armBob); ctx.stroke();
+    }
+  }
+
+  drawDead(cx, by, dir) {
+    ctx.save();
+    ctx.translate(cx, by - 15);
+    ctx.rotate(dir * Math.PI / 2);
+    ctx.font = '50px serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(this.config.emoji, 0, 10);
+    ctx.restore();
+  }
+}
+
+// ===== FULL ROSTER =====
+const ROSTER = [
+  { name: 'Cherry Bomb',     emoji: '🥧', symbol: '🍒', color: '#cc0000', fillColor: '#cc3333', headColor: '#e85c5c', stat: 'SPEED ████░  POWER ███░░', special: '✦ CHERRY BURST — Explosive cherry barrage' },
+  { name: 'Lord Meringue',   emoji: '🍋', symbol: '🍋', color: '#f0d060', fillColor: '#ffe080', headColor: '#fff5cc', stat: 'SPEED ███░░  POWER ████░', special: '✦ MERINGUE STORM — Whipped cream pillars' },
+  { name: 'The Pecan',       emoji: '🤎', symbol: '🥜', color: '#8b4513', fillColor: '#a0522d', headColor: '#c68642', stat: 'SPEED ██░░░  POWER █████', special: '✦ NUT CRUNCH — Devastating crunch slam' },
+  { name: 'Pumpkin Reaper',  emoji: '🎃', symbol: '🎃', color: '#ff6600', fillColor: '#ff8c00', headColor: '#ffb347', stat: 'SPEED ████░  POWER ███░░', special: '✦ HARVEST SCYTHE — Pumpkin spice slash' },
+  { name: "Shepherd's Bane", emoji: '🛡️', symbol: '🐑', color: '#4a7c59', fillColor: '#5a9c6a', headColor: '#7ab87e', stat: 'SPEED ███░░  POWER ███░░', special: '✦ GRAVY FLOOD — Drown foes in brown gravy' },
+  { name: 'Π Destroyer',     emoji: '🔢', symbol: 'π',  color: '#9b59b6', fillColor: '#bb79d6', headColor: '#d7a9e3', stat: 'SPEED █████  POWER ██░░░', special: '✦ IRRATIONAL — Infinite digit overload' },
+];
+
+const P1_CONTROLS = { left: 'KeyA', right: 'KeyD', jump: 'KeyW', punch: 'KeyF', kick: 'KeyG', special: 'KeyR' };
+const P2_CONTROLS = { left: 'ArrowLeft', right: 'ArrowRight', jump: 'ArrowUp', punch: 'KeyK', kick: 'KeyL', special: 'KeyP' };
+
+let p1SelectedIdx = -1;
+let p2SelectedIdx = -1;
+let p1Config = null;
+let p2Config = null;
+
+function buildRosterGrid() {
+  const grid = document.getElementById('roster-grid');
+  grid.innerHTML = '';
+  ROSTER.forEach((fighter, i) => {
+    const card = document.createElement('div');
+    card.className = 'roster-card';
+    card.dataset.idx = i;
+    card.innerHTML = `<div class="card-emoji">${fighter.emoji}</div><div class="card-name">${fighter.name}</div>`;
+    card.addEventListener('click', (e) => {
+      if (e.shiftKey) selectFighter(2, i);
+      else selectFighter(1, i);
+    });
+    grid.appendChild(card);
+  });
+}
+
+function selectFighter(player, idx) {
+  if (player === 1) p1SelectedIdx = idx;
+  else p2SelectedIdx = idx;
+  updateSelectUI();
+}
+
+function updateSelectUI() {
+  document.querySelectorAll('.roster-card').forEach((card, i) => {
+    card.classList.remove('selected-p1', 'selected-p2');
+    card.querySelectorAll('.p1-tag,.p2-tag').forEach(t => t.remove());
+    if (i === p1SelectedIdx && i === p2SelectedIdx) {
+      card.classList.add('selected-p1', 'selected-p2');
+      card.insertAdjacentHTML('beforeend', '<span class="p1-tag">P1</span><span class="p2-tag">P2</span>');
+    } else if (i === p1SelectedIdx) {
+      card.classList.add('selected-p1');
+      card.insertAdjacentHTML('beforeend', '<span class="p1-tag">P1</span>');
+    } else if (i === p2SelectedIdx) {
+      card.classList.add('selected-p2');
+      card.insertAdjacentHTML('beforeend', '<span class="p2-tag">P2</span>');
+    }
+  });
+  if (p1SelectedIdx >= 0) {
+    const f = ROSTER[p1SelectedIdx];
+    document.getElementById('p1-preview-emoji').textContent = f.emoji;
+    document.getElementById('p1-preview-name').textContent = f.name;
+    document.getElementById('p1-preview-stat').textContent = f.stat;
+    document.getElementById('p1-preview-special').textContent = f.special;
+  }
+  if (p2SelectedIdx >= 0) {
+    const f = ROSTER[p2SelectedIdx];
+    document.getElementById('p2-preview-emoji').textContent = f.emoji;
+    document.getElementById('p2-preview-name').textContent = f.name;
+    document.getElementById('p2-preview-stat').textContent = f.stat;
+    document.getElementById('p2-preview-special').textContent = f.special;
+  }
+  const btn = document.getElementById('fightBtn');
+  if (p1SelectedIdx >= 0 && p2SelectedIdx >= 0) btn.classList.add('ready');
+  else btn.classList.remove('ready');
+}
+
+let p1, p2;
+
+function initFighters() {
+  p1 = new Fighter(canvas.width * 0.25, 'left', p1Config);
+  p2 = new Fighter(canvas.width * 0.75 - 60, 'right', p2Config);
+  p2.facingRight = false;
+}
+
+// ===== PARTICLES =====
+function spawnParticles(x, y, count, color, speed) {
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const s = (Math.random() + 0.5) * speed;
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * s,
+      vy: Math.sin(angle) * s - 3,
+      life: 30 + Math.random() * 20,
+      maxLife: 50,
+      size: 4 + Math.random() * 8,
+      color,
+      emoji: Math.random() < 0.3 ? (Math.random() < 0.5 ? '🥧' : '💥') : null
+    });
+  }
+}
+
+function updateParticles() {
+  particles = particles.filter(p => p.life > 0);
+  particles.forEach(p => {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.3;
+    p.life--;
+    p.vx *= 0.95;
+  });
+}
+
+function updateProjectiles(p1, p2) {
+  projectiles = projectiles.filter(p => p.life > 0 && !p.hit);
+  projectiles.forEach(proj => {
+    proj.x += proj.vx;
+    proj.y += proj.vy;
+    proj.vy += 0.25; // gentle arc
+    proj.spin += 0.2;
+    proj.life--;
+    // Check hit against opponent
+    const target = proj.owner === p1 ? p2 : p1;
+    if (!target.dead && target.hitCooldown === 0) {
+      const dx = Math.abs(proj.x - target.cx);
+      const dy = Math.abs(proj.y - (target.y - target.height / 2));
+      if (dx < 40 && dy < 50) {
+        proj.hit = true;
+        target.hp = Math.max(0, target.hp - 22);
+        target.hitCooldown = 25;
+        target.hitFlash = 10;
+        target.dizzy = 45;
+        spawnParticles(proj.x, proj.y, 20, proj.config.color, 6);
+        spawnParticles(proj.x, proj.y, 10, '#fff8dc', 4);
+        screenShake = 15;
+        updateHealthBars();
+      }
+    }
+  });
+}
+
+function drawProjectiles() {
+  projectiles.forEach(proj => {
+    ctx.save();
+    ctx.translate(proj.x, proj.y);
+    ctx.rotate(proj.spin);
+    // Glow trail
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = proj.config.color;
+    ctx.font = '28px serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🥧', 0, 0);
+    ctx.shadowBlur = 0;
+    ctx.restore();
+  });
+}
+
+function drawParticles() {
+  particles.forEach(p => {
+    const alpha = p.life / p.maxLife;
+    if (p.emoji) {
+      ctx.globalAlpha = alpha;
+      ctx.font = `${p.size * 2}px serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText(p.emoji, p.x, p.y);
+    } else {
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, Math.max(0, p.size * alpha), 0, Math.PI * 2);
+      ctx.fill();
+    }
+  });
+  ctx.globalAlpha = 1;
+}
+
+// ===== BACKGROUND =====
+function drawBackground() {
+  const W = canvas.width, H = canvas.height;
+  const gY = GROUND_Y();
+
+  // Sky gradient - dark and ominous
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, gY);
+  skyGrad.addColorStop(0, '#050008');
+  skyGrad.addColorStop(0.5, '#1a0005');
+  skyGrad.addColorStop(1, '#2a0808');
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Eerie moon / pie in sky
+  ctx.save();
+  ctx.globalAlpha = 0.15;
+  ctx.font = `${W * 0.12}px serif`;
+  ctx.textAlign = 'center';
+  ctx.fillText('🥧', W * 0.5, H * 0.22);
+  ctx.restore();
+
+  // Distant torches
+  for (let i = 0; i < 5; i++) {
+    const tx = W * (0.1 + i * 0.2);
+    const ty = gY - 80;
+    ctx.fillStyle = '#4a3000';
+    ctx.fillRect(tx - 4, ty, 8, 80);
+    // Flame glow
+    const flicker = Math.sin(Date.now() / 100 + i) * 5;
+    const grad = ctx.createRadialGradient(tx, ty - 10 + flicker, 2, tx, ty, 25);
+    grad.addColorStop(0, 'rgba(255,200,50,0.9)');
+    grad.addColorStop(0.4, 'rgba(255,80,0,0.5)');
+    grad.addColorStop(1, 'rgba(255,0,0,0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.ellipse(tx, ty - 10 + flicker, 15, 25, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Stone floor
+  const floorGrad = ctx.createLinearGradient(0, gY, 0, H);
+  floorGrad.addColorStop(0, '#2a1a0a');
+  floorGrad.addColorStop(0.3, '#1a1008');
+  floorGrad.addColorStop(1, '#0a0804');
+  ctx.fillStyle = floorGrad;
+  ctx.fillRect(0, gY, W, H - gY);
+
+  // Floor stones
+  ctx.strokeStyle = '#3a2510';
+  ctx.lineWidth = 2;
+  for (let x = 0; x < W; x += 80) {
+    ctx.beginPath(); ctx.moveTo(x, gY); ctx.lineTo(x, H); ctx.stroke();
+  }
+  for (let y = gY; y < H; y += 40) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  // Floor highlight line
+  const lineGrad = ctx.createLinearGradient(0, 0, W, 0);
+  lineGrad.addColorStop(0, 'transparent');
+  lineGrad.addColorStop(0.5, 'rgba(201,162,39,0.4)');
+  lineGrad.addColorStop(1, 'transparent');
+  ctx.fillStyle = lineGrad;
+  ctx.fillRect(0, gY - 2, W, 4);
+
+  // Vignette
+  const vign = ctx.createRadialGradient(W/2, H/2, H*0.2, W/2, H/2, H*0.8);
+  vign.addColorStop(0, 'transparent');
+  vign.addColorStop(1, 'rgba(0,0,0,0.7)');
+  ctx.fillStyle = vign;
+  ctx.fillRect(0, 0, W, H);
+}
+
+// ===== HUD =====
+function updateHealthBars() {
+  document.getElementById('p1-health').style.width = Math.max(0, p1.hp / MAX_HP * 100) + '%';
+  document.getElementById('p2-health').style.width = Math.max(0, p2.hp / MAX_HP * 100) + '%';
+  if (p1.hp <= 20) document.getElementById('p1-health').style.background = 'linear-gradient(90deg, #660000, #ff2200)';
+  if (p2.hp <= 20) document.getElementById('p2-health').style.background = 'linear-gradient(90deg, #003300, #ff2200)';
+}
+
+function updateWinDots() {
+  const p1d = document.getElementById('p1-wins');
+  const p2d = document.getElementById('p2-wins');
+  p1d.innerHTML = [0,1].map(i => `<div class="win-dot${i < p1Wins ? ' filled' : ''}"></div>`).join('');
+  p2d.innerHTML = [0,1].map(i => `<div class="win-dot${i < p2Wins ? ' filled' : ''}"></div>`).join('');
+}
+
+function showAnnounce(text, cssClass, duration, callback) {
+  const el = document.getElementById('announce');
+  el.innerHTML = `<div class="announce-text ${cssClass || ''}">${text}</div>`;
+  if (announceTimeout) clearTimeout(announceTimeout);
+  announceTimeout = setTimeout(() => {
+    el.innerHTML = '';
+    if (callback) callback();
+  }, duration);
+}
+
+// ===== TIMER =====
+function startTimer() {
+  timer = ROUND_TIME;
+  document.getElementById('timer').textContent = timer;
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    if (gameState !== 'fight') return;
+    timer--;
+    document.getElementById('timer').textContent = timer;
+    if (timer <= 0) {
+      clearInterval(timerInterval);
+      timeOut();
+    }
+  }, 1000);
+}
+
+function timeOut() {
+  if (gameState !== 'fight') return;
+  gameState = 'ko';
+  if (p1.hp > p2.hp) { roundWin(1); }
+  else if (p2.hp > p1.hp) { roundWin(2); }
+  else { 
+    showAnnounce('DRAW!', 'ko', 2000, () => startRound());
+  }
+}
+
+// ===== ROUND LOGIC =====
+function goToCharSelect() {
+  document.getElementById('title-screen').style.display = 'none';
+  document.getElementById('char-select').style.display = 'flex';
+  p1SelectedIdx = -1; p2SelectedIdx = -1;
+  p1Config = null; p2Config = null;
+  buildRosterGrid();
+  updateSelectUI();
+}
+
+function startGame() {
+  p1Config = { ...ROSTER[p1SelectedIdx], ...P1_CONTROLS };
+  p2Config = { ...ROSTER[p2SelectedIdx], ...P2_CONTROLS };
+  p1Wins = 0; p2Wins = 0; roundNum = 1;
+  document.getElementById('char-select').style.display = 'none';
+  document.getElementById('hud').style.display = 'block';
+  document.getElementById('victory-screen').style.display = 'none';
+  document.getElementById('p1-hud-name').textContent = p1Config.emoji + ' ' + p1Config.name;
+  document.getElementById('p2-hud-name').textContent = p2Config.name + ' ' + p2Config.emoji;
+  updateWinDots();
+  startRound();
+}
+
+function startRound() {
+  initFighters();
+  particles = [];
+  projectiles = [];
+  updateHealthBars();
+  document.getElementById('p1-health').style.background = 'linear-gradient(90deg, var(--blood), var(--blood-bright))';
+  document.getElementById('p2-health').style.background = 'linear-gradient(90deg, #1a5c1a, #2eb82e)';
+  gameState = 'announce';
+
+  showAnnounce(`ROUND ${roundNum}`, '', 1200, () => {
+    showAnnounce('KOMBAKE!', 'fight', 800, () => {
+      gameState = 'fight';
+      startTimer();
+    });
+  });
+}
+
+function checkKO() {
+  if (gameState !== 'fight') return;
+  if (p1.hp <= 0) {
+    p1.dead = true;
+    clearInterval(timerInterval);
+    gameState = 'ko';
+    spawnParticles(p1.cx, p1.y - 40, 25, '#cc0000', 7);
+    screenShake = 20;
+    setTimeout(() => roundWin(2), 600);
+  } else if (p2.hp <= 0) {
+    p2.dead = true;
+    clearInterval(timerInterval);
+    gameState = 'ko';
+    spawnParticles(p2.cx, p2.y - 40, 25, '#f0d060', 7);
+    screenShake = 20;
+    setTimeout(() => roundWin(1), 600);
+  }
+}
+
+function roundWin(player) {
+  if (player === 1) p1Wins++;
+  else p2Wins++;
+  updateWinDots();
+
+  const winnerName = player === 1 ? p1Config.name : p2Config.name;
+  const flawless = player === 1 ? p2.hp === MAX_HP : p1.hp === MAX_HP; // wait, flawless = winner never took damage... approximate
+  
+  showAnnounce('K.O.!', 'ko', 1000, () => {
+    if (p1Wins >= WINS_TO_WIN || p2Wins >= WINS_TO_WIN) {
+      setTimeout(() => showVictory(player), 500);
+    } else {
+      roundNum++;
+      setTimeout(() => startRound(), 1000);
+    }
+  });
+}
+
+function showVictory(player) {
+  gameState = 'victory';
+  clearInterval(timerInterval);
+  const vs = document.getElementById('victory-screen');
+  vs.style.display = 'flex';
+  document.getElementById('winner-name').textContent = player === 1 ? p1Config.emoji + ' ' + p1Config.name : p2Config.name + ' ' + p2Config.emoji;
+  const fatalities = [
+    'PASTRY-ALITY!', 'FLAWLESS VICTORY!', 'FINISH HIM... WITH PIE!', 'BAKE FATALITY!'
+  ];
+  document.getElementById('fatality-msg').textContent = fatalities[Math.floor(Math.random() * fatalities.length)];
+  for (let i = 0; i < 5; i++) {
+    setTimeout(() => {
+      spawnParticles(Math.random() * canvas.width, Math.random() * canvas.height * 0.5, 15, player === 1 ? p1Config.color : p2Config.color, 5);
+    }, i * 300);
+  }
+}
+
+// ===== MAIN LOOP =====
+function loop() {
+  requestAnimationFrame(loop);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (screenShake > 0) {
+    const sx = (Math.random() - 0.5) * screenShake;
+    const sy = (Math.random() - 0.5) * screenShake;
+    ctx.save();
+    ctx.translate(sx, sy);
+    screenShake = Math.max(0, screenShake - 1.5);
+  }
+
+  drawBackground();
+  updateParticles();
+  if (p1 && p2) updateProjectiles(p1, p2);
+  drawParticles();
+  drawProjectiles();
+
+  if (gameState !== 'title') {
+    if (gameState === 'fight') {
+      p1.update(p2);
+      p2.update(p1);
+      checkKO();
+    }
+    p1.draw();
+    p2.draw();
+  }
+
+  if (screenShake > 0) ctx.restore();
+}
+
+// ===== INIT =====
+document.getElementById('startBtn').addEventListener('click', goToCharSelect);
+document.getElementById('playAgainBtn').addEventListener('click', () => {
+  document.getElementById('victory-screen').style.display = 'none';
+  goToCharSelect();
+});
+
+document.getElementById('fightBtn').addEventListener('click', () => {
+  if (p1SelectedIdx >= 0 && p2SelectedIdx >= 0) startGame();
+});
+
+// Start render loop for title
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
